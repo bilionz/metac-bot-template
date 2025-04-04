@@ -39,7 +39,7 @@ jobs:
       - name: Run bot
         run: |
           poetry run python main.py --mode test_questions
-        # this reads the environment variables from the github repository.
+        # this reads the environment variables from the github repository. s
         # Store under Settings --> Secrets and variables --> Actions
         env:
           METACULUS_TOKEN: ${{ secrets.METACULUS_TOKEN }} # replace this with the name of the variable under which you stored your own Metaculus token
