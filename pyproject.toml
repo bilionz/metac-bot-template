@@ -1,24 +1,38 @@
+# pyproject.toml adapted for Gemini Forecaster bot
+
 [tool.poetry]
-name = "metac-bot-template"
+name = "metac-bot-template" # You can keep or change this name
 version = "0.1.0"
-description = ""
+description = "Metaculus forecasting bot using Gemini" # Updated description
 authors = ["Vasile Popescu <elisescu@elisescu.com>"]
 readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.11"
-python-decouple = "^3.8"
-requests = "^2.32.3"
-asknews = "^0.9.1"
-numpy = "^1.26.0"
-openai = "^1.57.4"
-python-dotenv = "^1.0.1"
-forecasting-tools = "^0.2.23"
+python = "^3.11" # Keep Python 3.11+
+
+# --- Core Gemini Dependency ---
+google-genai = "^1.9.0" # Added Gemini library (check for latest version)
+
+# --- Forecasting Tools ---
+forecasting-tools = "^0.2.23" # Keep your specified version
+
+# --- Fallback LLM Dependencies ---
+litellm = "^1.35.29" # Added: Often used by GeneralLlm for fallback routing
+openai = "^1.57.4"   # Keep: Needed for OpenAI fallback
+
+# --- Other Potentially Useful Dependencies ---
+requests = "^2.32.3"    # Keep: May be used by dependencies
+numpy = "^1.26.0"       # Keep: May be used by dependencies
+python-dotenv = "^1.0.1" # Keep: Useful for loading .env file locally
+
+# --- Removed Dependencies (No longer directly used by gemini_forecaster_v4) ---
+# python-decouple = "^3.8" # Removed
+# asknews = "^0.9.1"       # Removed
 
 
 [tool.poetry.group.dev.dependencies]
-ipykernel = "^6.29.5"
+ipykernel = "^6.29.5" # Keep dev dependencies
 
 [build-system]
 requires = ["poetry-core"]
