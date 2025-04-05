@@ -7,8 +7,8 @@ from datetime import datetime
 from typing import Literal, Optional, Dict, Any, Tuple, List
 
 # --- Google Generative AI Imports ---
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 from google.api_core import exceptions as google_exceptions
 
 # --- Forecasting Tools Imports ---
