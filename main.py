@@ -267,7 +267,34 @@ class GeminiForecaster(ForecastBot):
                       logger.error(f"Persistent TypeError calling Part.from_text(): {e}", exc_info=True)
                  else:
                       logger.error(f"Unexpected error during Gemini call: {e}", exc_info=True)
+                      
                  return None
+            
+    def _create_upper_and_lower_bound_messages(self, question: NumericQuestion) -> tuple[str, str]:
+        """Creates messages describing the bounds for numeric question prompts."""
+        if question.open_upper_bound:
+            upper_bound_message = "There is no upper bound."
+        else:
+            # Format bound nicely if possible
+            try:
+                 bound_str = f"{question.upper_bound:g}" # Use general format for numbers
+            except TypeError:
+                 bound_str = str(question.upper_bound)
+            upper_bound_message = f"IMPORTANT: Outcome cannot be higher than {bound_str}."
+
+        if question.open_lower_bound:
+            lower_bound_message = "There is no lower bound."
+        else:
+             try:
+                  bound_str = f"{question.lower_bound:g}"
+             except TypeError:
+                  bound_str = str(question.lower_bound)
+             lower_bound_message = f"IMPORTANT: Outcome cannot be lower than {bound_str}."
+
+        return upper_bound_message, lower_bound_message
+    
+
+
 # --- _run_forecast_on_binary (No Fallback) ---
     async def _run_forecast_on_binary(
         self, question: BinaryQuestion , research:str 
@@ -281,7 +308,7 @@ class GeminiForecaster(ForecastBot):
             **Objective:** Analyze the provided binary forecasting question and generate a probabilistic forecast as a JSON object containing the probability for 'Yes' and detailed reasoning. Use web search results to inform your analysis.
 
             **Question Details:**
-            * **Title:** {question.title}
+            * **Title:** {question.name}
             * **URL:** {question.page_url}
             * **Resolution Criteria:** {question.resolution_criteria}
             * **Background:** {question.background}
@@ -344,7 +371,7 @@ class GeminiForecaster(ForecastBot):
             **Objective:** Analyze the provided multiple-choice forecasting question and generate a probabilistic forecast as a JSON object containing probabilities for each option and detailed reasoning. Use web search results to inform your analysis.
 
             **Question Details:**
-            * **Title:** {question.title}
+            * **Title:** {question.name}
             * **URL:** {question.page_url}
             * **Resolution Criteria:** {question.resolution_criteria}
             * **Background:** {question.background}
@@ -470,7 +497,7 @@ class GeminiForecaster(ForecastBot):
             **Objective:** Analyze the provided forecasting question and generate a probabilistic forecast as a JSON object containing specific percentiles (p10, p20, p40, p60, p80, p90) and detailed reasoning. Use web search results to inform your analysis.
 
             **Question Details:**
-            * **Title:** {question.title}
+            * **Title:** {question.name}
             * **URL:** {question.page_url}
             * **Resolution Criteria:** {question.resolution_criteria}
             * **Background:** {question.background}
