@@ -13,7 +13,6 @@ python = "^3.11" # Keep Python 3.11+
 
 # --- Core Gemini Dependency ---
 google-genai = "^0.8.0" # Added Gemini library (check for latest version)
-google-generativeai = "^0.8.4"
 google-api-core = "^2.19.0" 
 
 # --- Forecasting Tools ---

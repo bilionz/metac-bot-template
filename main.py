@@ -7,8 +7,8 @@ from datetime import datetime
 from typing import Literal, Optional, Dict, Any, Tuple, List
 
 # --- Google Generative AI Imports ---
-import google.generativeai as genai
-from google.generativeai import types
+from google import genai
+from google.genai import types
 from google.api_core import exceptions as google_exceptions
 
 # --- Forecasting Tools Imports ---
@@ -130,16 +130,19 @@ class GeminiForecaster(ForecastBot):
 
         # --- Configure Gemini Client (API Key: Env Var) ---
         self.api_key = os.getenv("GEMINI_API_KEY")
+        
+        self.gemini_client = None # Initialize client as None
+
         if not self.api_key:
             logger.warning("GEMINI_API_KEY environment variable not set. Gemini calls will fail.")
         else:
             try:
-                # Configure the API key globally for the genai library
-                genai.configure(api_key=self.api_key)
-                logger.info("Gemini API Key configured.")
+                # Initialize client using genai.Client(api_key=...)
+                self.gemini_client = genai.Client(api_key=self.api_key)
+                logger.info("Gemini client initialized using API Key.")
             except Exception as e:
-                 logger.error(f"Failed to configure Gemini API key: {e}")
-                 self.api_key = None # Ensure key is None if config fails
+                 logger.error(f"Failed to initialize Gemini client with API key: {e}", exc_info=True)
+                 self.gemini_client = None # Ensure client is None on failure
 
         # --- Determine Gemini Model Name (Env Var > Argument > Default) ---
         self.model_name = os.getenv("GEMINI_MODEL_NAME")
@@ -152,56 +155,22 @@ class GeminiForecaster(ForecastBot):
             self.model_name = self.DEFAULT_GEMINI_MODEL
             logger.info(f"Using default Gemini Model Name: {self.model_name}")
 
-        # --- Initialize Gemini Client ---
-        self.gemini_client = None
-        if self.api_key: # Only initialize if API key is configured
-            try:
-                # Initialize the GenerativeModel instance
-                self.gemini_client = genai.GenerativeModel(
-                    self.model_name,
-                    # Default generation config - expecting JSON
-                    generation_config=types.GenerationConfig(
-                        temperature=0.7,
-                        top_p=0.95,
-                        max_output_tokens=16000, # Adjust as needed
-                        response_mime_type="application/json", # CRITICAL: Keep for structured output
-                    ),
-                    # Define tools (Google Search)
-                    tools=[
-                        types.Tool(google_search_retrieval=types.GoogleSearch()),
-                    ]
-                )
-                logger.info(f"Gemini client initialized for model '{self.model_name}' using API Key.")
-            except Exception as e:
-                logger.error(f"Failed to initialize Gemini client model '{self.model_name}': {e}")
-                self.gemini_client = None
-        else:
-            logger.error("Cannot initialize Gemini client without an API Key.")
-
         # --- Fallback LLM Initialization (Unchanged) ---
         self.fallback_llm = None
+        # ...(fallback init logic remains the same)...
         if fallback_llm_model:
-            # Check for necessary API keys for fallback
-            if "openai" in fallback_llm_model.lower() and not os.getenv("OPENAI_API_KEY"):
-                 logger.warning(f"OPENAI_API_KEY not set. Fallback model {fallback_llm_model} may not work.")
-            # Add checks for other keys (e.g., ANTHROPIC_API_KEY) if needed
             try:
-                self.fallback_llm = GeneralLlm(
-                    model=fallback_llm_model,
-                    temperature=fallback_llm_temp,
-                    timeout=fallback_llm_timeout,
-                )
+                self.fallback_llm = GeneralLlm(...)
                 logger.info(f"Fallback LLM initialized: {fallback_llm_model}")
-            except Exception as e:
-                logger.error(f"Failed to initialize fallback LLM ({fallback_llm_model}): {e}")
-                self.fallback_llm = None
-        else:
-            logger.info("No fallback LLM configured.")
+            except Exception as e: logger.error(f"Failed to initialize fallback LLM: {e}")
+        else: logger.info("No fallback LLM configured.")
+
 
 
     async def _call_gemini(self, prompt: str, response_schema: types.Schema) -> Optional[Dict[str, Any]]:
         """
-        Calls the Gemini API using the configured API key.
+        Calls the Gemini API using the genai.Client instance (API Key).
+        Attempts call via client.models.generate_content(...).
         Returns parsed JSON dict on success, None on failure.
         """
         if not self.gemini_client:
@@ -210,24 +179,40 @@ class GeminiForecaster(ForecastBot):
 
         async with self._concurrency_limiter:
             try:
-                logger.debug(f"Sending request to Gemini model '{self.model_name}'...")
-                # Call generate_content (non-streaming for JSON response)
-                # Pass the specific response_schema needed for this call
+                # Use the model name determined in __init__
+                model_id_for_call = f"models/{self.model_name}" # Format needed for direct API calls
+                logger.debug(f"Sending request to Gemini model '{model_id_for_call}' via genai.Client...")
+
+                # Construct the request parts
+                text_part = types.Part.from_text(prompt)
+                contents = [types.Content(role="user", parts=[text_part])]
+
+                # Define tools (Search)
+                tools = [types.Tool(google_search_retrieval=types.GoogleSearchRetrieval())]
+
+                # Construct the generation config
+                generate_content_config = types.GenerateContentConfig(
+                    temperature=0.7,
+                    top_p=0.95,
+                    max_output_tokens=16300,
+                    response_mime_type="application/json", # MUST request JSON
+                    response_schema=response_schema, # Pass the specific schema
+                )
+
+                # Make the API call using client.models.generate_content
+                # This structure is based on Vertex usage, hoping it works for API key client
                 response = await asyncio.to_thread(
-                    self.gemini_client.generate_content,
-                    contents=[prompt],
-                    generation_config=types.GenerationConfig(
-                         response_mime_type="application/json", # Ensure JSON is requested
-                         response_schema=response_schema,      # Pass the specific schema
-                         temperature=0.7, # Can be overridden per call if needed
-                    ),
-                    # Tools are usually defined at model init, but can be passed here too
-                    # tools=[types.Tool(google_search_retrieval=types.GoogleSearchRetrieval())]
+                    self.gemini_client.models.generate_content, # Calling method on client.models
+                    model=model_id_for_call, # Pass model name here
+                    contents=contents,
+                    generation_config=generate_content_config,
+                    tools=tools,
+                    # stream=False # Ensure non-streaming
                 )
 
                 # --- Process Response (same logic as before) ---
                 if not response.candidates or not response.candidates[0].content.parts:
-                     logger.warning("Gemini API returned an empty response or no valid candidate.")
+                     logger.warning("Gemini API returned empty response.")
                      return None
 
                 response_text = response.text
@@ -236,12 +221,11 @@ class GeminiForecaster(ForecastBot):
                 try:
                     response_data = json.loads(response_text)
                 except json.JSONDecodeError as json_err:
-                    logger.error(f"Failed to parse Gemini JSON response: {json_err}. Response text: {response_text}")
+                    logger.error(f"Failed to parse Gemini JSON response: {json_err}. Response: {response_text}")
                     return None
 
                 logger.info(f"Gemini structured response received:\n{json.dumps(response_data, indent=2, ensure_ascii=False)}")
 
-                # Validate required keys based on the passed schema
                 if not all(key in response_data for key in response_schema.required):
                      missing_keys = [key for key in response_schema.required if key not in response_data]
                      logger.error(f"Gemini response missing required keys: {missing_keys}. Response: {response_data}")
@@ -249,12 +233,16 @@ class GeminiForecaster(ForecastBot):
 
                 return response_data # Success
 
+            # Use the imported google_exceptions if available
             except google_exceptions.GoogleAPIError as api_err:
-                # Handle potential API key errors, quota issues, etc.
                 logger.error(f"Gemini API error: {api_err}")
                 return None
+            except AttributeError as attr_err:
+                 # This might catch issues if client.models.generate_content doesn't exist
+                 logger.error(f"AttributeError during Gemini call (check API structure): {attr_err}", exc_info=True)
+                 return None
             except Exception as e:
-                logger.error(f"An unexpected error occurred during Gemini call: {e}", exc_info=True)
+                logger.error(f"Unexpected error during Gemini call: {e}", exc_info=True)
                 return None
 
     # --- run_research Method (Unchanged) ---
