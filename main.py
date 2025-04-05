@@ -166,6 +166,15 @@ class GeminiForecaster(ForecastBot):
         else: logger.info("No fallback LLM configured.")
 
 
+    async def run_research(self, question: MetaculusQuestion) -> str:
+            """
+            Placeholder implementation required by the ForecastBot abstract base class.
+            This bot relies on Gemini's internal search tool or skips dedicated research.
+            """
+            logger.info(f"Skipping external research step for {question.page_url} (handled by Gemini tool or omitted).")
+            # Return an empty string, matching the expected return type hint.
+            return ""
+    
 
     async def _call_gemini(self, prompt: str, response_schema: types.Schema) -> Optional[Dict[str, Any]]:
         """
@@ -261,7 +270,7 @@ class GeminiForecaster(ForecastBot):
                  return None
 # --- _run_forecast_on_binary (No Fallback) ---
     async def _run_forecast_on_binary(
-        self, question: BinaryQuestion # Removed 'research' parameter
+        self, question: BinaryQuestion , research:str 
     ) -> ReasonedPrediction[float]:
         """
         Generates a forecast for a binary question using Gemini (API Key).
@@ -323,7 +332,7 @@ class GeminiForecaster(ForecastBot):
 
     # --- _run_forecast_on_multiple_choice (No Fallback) ---
     async def _run_forecast_on_multiple_choice(
-        self, question: MultipleChoiceQuestion # Removed 'research' parameter
+        self, question: MultipleChoiceQuestion , research:str
     ) -> ReasonedPrediction[PredictedOptionList]:
         """
         Generates a forecast for a multiple-choice question using Gemini (API Key).
@@ -445,20 +454,11 @@ class GeminiForecaster(ForecastBot):
              logger.error(f"Question {question.page_url} has no options defined.")
 
         return ReasonedPrediction(prediction_value=fallback_pred, reasoning="Forecast generation failed (even distribution used).")
-    
-    
-    async def run_research(self, question: MetaculusQuestion) -> str:
-            """
-            Placeholder implementation required by the ForecastBot abstract base class.
-            This bot relies on Gemini's internal search tool or skips dedicated research.
-            """
-            logger.info(f"Skipping external research step for {question.page_url} (handled by Gemini tool or omitted).")
-            # Return an empty string, matching the expected return type hint.
-            return ""
+
 
     # --- _run_forecast_on_numeric (No Fallback) ---
     async def _run_forecast_on_numeric(
-        self, question: NumericQuestion # Removed 'research' parameter
+        self, question: NumericQuestion , research:str
     ) -> ReasonedPrediction[NumericDistribution]:
         """
         Generates a forecast for a numeric question using Gemini (API Key).
