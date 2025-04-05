@@ -445,7 +445,16 @@ class GeminiForecaster(ForecastBot):
              logger.error(f"Question {question.page_url} has no options defined.")
 
         return ReasonedPrediction(prediction_value=fallback_pred, reasoning="Forecast generation failed (even distribution used).")
-
+    
+    
+    async def run_research(self, question: MetaculusQuestion) -> str:
+            """
+            Placeholder implementation required by the ForecastBot abstract base class.
+            This bot relies on Gemini's internal search tool or skips dedicated research.
+            """
+            logger.info(f"Skipping external research step for {question.page_url} (handled by Gemini tool or omitted).")
+            # Return an empty string, matching the expected return type hint.
+            return ""
 
     # --- _run_forecast_on_numeric (No Fallback) ---
     async def _run_forecast_on_numeric(
