@@ -971,13 +971,6 @@ if __name__ == "__main__":
     if not GEMINI_API_KEY:
         logger.critical("GEMINI_API_KEY environment variable not set. Cannot use Gemini.")
         exit(1)
-    else:
-        try:
-            genai.client(api_key=GEMINI_API_KEY)
-            logger.info("Gemini configured successfully with API Key.")
-        except Exception as config_err:
-             logger.critical(f"Failed to configure Gemini: {config_err}", exc_info=True)
-             exit(1)
 
     # --- Determine Question List and Skip Logic based on Mode ---
     question_list: list[tuple[int, int]] = []
