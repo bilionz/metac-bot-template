@@ -920,8 +920,8 @@ async def forecast_individual_question(
 
 async def forecast_questions(
     open_question_id_post_id: list[tuple[int, int]],
-    submit_prediction: bool,
     skip_previously_forecasted_questions: bool,
+    submit_prediction: bool = True,
 ) -> None:
     """Asynchronously forecasts a list of questions."""
     tasks = [
@@ -997,22 +997,14 @@ if __name__ == "__main__":
     # --- Log Run Configuration ---
     logger.info(f"Starting forecast run for {len(question_list)} questions.")
     logger.info(f"Run Mode: {args.mode}")
-    logger.info(f"Target Model: {args.model if args.model else '(default)'}")
-    logger.info(f"Publish predictions: {args.publish}")
     # Removed logging for args.skip_previous, logged effective value above
-
-    if args.fallback_model:
-        logger.warning(f"Fallback model arguments provided (--fallback-*) but are NOT USED by this script version.")
-
 
     # --- Execute Forecasting ---
     try:
         asyncio.run(
             forecast_questions(
                 question_list,
-                submit_prediction=args.publish,
                 skip_previously_forecasted_questions=effective_skip_previous, # Use determined value
-                model_name_override=args.model,
             )
         )
     except Exception as main_err:
