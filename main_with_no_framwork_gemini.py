@@ -477,9 +477,9 @@ async def get_binary_gemini_prediction(question_details: dict) -> tuple[Optional
         * **Resolution Criteria:** {question_details['resolution_criteria']}
         * **Background:** {question_details['description']}
         * **Publish Time:** {question_details['publish_time']}
-        * **Close Time:** {question_details['close_time']}
-        * **Resolve Time:** {question_details['resolve_time']}
-        * **Fine Print:** {question_details['fine_print']}
+        * **Close Time:** {question_details.get('close_time', 'N/A')}
+        * **Resolve Time:** {question_details.get('resolve_time', 'N/A')}
+        * **Fine Print:** {question_details.get('fine_print', 'N/A')}
         * **Today's Date:** {datetime.datetime.now().strftime('%Y-%m-%d')}
 
         **Task:**
@@ -539,11 +539,10 @@ async def get_multiple_choice_gemini_prediction(question_details: dict) -> tuple
         * **Available Options:**
 {options_str}
         * **Publish Time:** {question_details['publish_time']}
-        * **Close Time:** {question_details['close_time']}
-        * **Resolve Time:** {question_details['resolve_time']}
-        * **Fine Print:** {question_details['fine_print']}
+        * **Close Time:** {question_details.get('close_time', 'N/A')}
+        * **Resolve Time:** {question_details.get('resolve_time', 'N/A')}
+        * **Fine Print:** {question_details.get('fine_print', 'N/A')}
         * **Today's Date:** {datetime.datetime.now().strftime('%Y-%m-%d')}
-
         **Task:**
         1.  **Analyze:** Consider the question, criteria, and each option.
         2.  **Research (Internal Tool):** Use search to find info supporting/refuting each option. Summarize findings in 'HistoricalData'.
@@ -678,13 +677,13 @@ async def get_numeric_gemini_prediction(question_details: dict) -> tuple[Optiona
 
         **Question Details:**
         * **Title:** {question_details['title']}
-        * **URL:** {question_details['page_url']}
+        * **URL:** {question_details['page_url']}z
         * **Resolution Criteria:** {question_details['resolution_criteria']}
         * **Background:** {question_details['description']}
         * **Publish Time:** {question_details['publish_time']}
-        * **Close Time:** {question_details['close_time']}
-        * **Resolve Time:** {question_details['resolve_time']}
-        * **Fine Print:** {question_details['fine_print']}
+        * **Close Time:** {question_details.get('close_time', 'N/A')}
+        * **Resolve Time:** {question_details.get('resolve_time', 'N/A')}
+        * **Fine Print:** {question_details.get('fine_print', 'N/A')}
         * {lb_msg}
         * {ub_msg}
         * **Units:** {unit_of_measure}
@@ -833,6 +832,10 @@ async def forecast_individual_question(
         return f"-----------------------------------------------\nPost {post_id} Q {question_id}:\nFailed to fetch post details.\n"
 
     question_details = post_details["question"]
+    # *** Use .get() for safety, provide default if missing ***
+    post_publish_time = post_details.get('publish_time', 'N/A')
+    if question_details.get('publish_time') is None:
+        question_details['publish_time'] = post_publish_time
     # Add page_url if missing (construct it)
     if 'page_url' not in question_details:
          question_details['page_url'] = f"https://www.metaculus.com/questions/{question_id}/" # Or use post_id if more reliable
