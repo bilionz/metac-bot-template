@@ -973,7 +973,7 @@ if __name__ == "__main__":
         exit(1)
     else:
         try:
-            genai.configure(api_key=GEMINI_API_KEY)
+            genai.client(api_key=GEMINI_API_KEY)
             logger.info("Gemini configured successfully with API Key.")
         except Exception as config_err:
              logger.critical(f"Failed to configure Gemini: {config_err}", exc_info=True)
